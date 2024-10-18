@@ -2,31 +2,115 @@
 
 OS=$(uname -s)
 
-case "$OS" in
-Linux)
-OS="Linux"
-;;
-SunOS)
-OS="Solaris"
-;;
-AIX)
-OS="AIX"
-;;
-HP-UX)
-OS="HP-UX"
-;;
-*)
-OS="Unkown OS"
-;;
-
-esac
-
 echo "OS is $OS"
 
-if ps -ef | grep -v grep | grep -q "telnetd"; then
-    echo "Telnet daemon is running."
-if ps -ef | grep -v grep | grep -q "inetd"; then
-    CONFIG_FILE="etc/inetd.conf"
-    if [-f "$CONFIG_FILE"]; then
-        
+check_telnet() {
+    # Check Telnet Daemon
+    if ps -ef | grep -v grep | grep -q "telnetd"; then
+        echo "Telnet daemon is running on $OS."
 
+        # Location of OS's configuration files
+        case "$OS" in
+            Linux|AIX|HP-UX)
+                CONFIG_FILE="/etc/inetd.conf"
+                ;;
+            SunOS)
+                CONFIG_FILE="/etc/inet/inetd.conf"
+                ;;
+            *)
+                echo "Unknown OS. Could not determine telnet config file location."
+                return
+                ;;
+        esac
+
+        # Check 'Allow Remote Login' from config.
+        if [ -f "$CONFIG_FILE" ]; then
+            echo "Checking Telnet configuration in $CONFIG_FILE..."
+            if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
+                echo "Telnet service is enabled. Please check if root login is allowed."
+            else
+                echo "Telnet service is disabled in $CONFIG_FILE."
+            fi
+        else
+            echo "Telnet configuration file not found at $CONFIG_FILE."
+        fi
+
+    # if use inetd
+    elif ps -ef | grep -v grep | grep -q "inetd"; then
+        echo "inetd is managing Telnet on $OS."
+        if [ "$OS" == "SunOS" ]; then
+            CONFIG_FILE="/etc/inet/inetd.conf"
+        else
+            CONFIG_FILE="/etc/inetd.conf"
+        fi
+
+        if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
+            echo "Telnet service is enabled in $CONFIG_FILE. Please check if root login is allowed."
+        else
+            echo "Telnet service is disabled in $CONFIG_FILE."
+        fi
+
+    # if use xinetd
+    elif ps -ef | grep -v grep | grep -q "xinetd"; then
+        echo "xinetd is managing Telnet on $OS."
+        CONFIG_FILE="/etc/xinetd.d/telnet"
+
+        if [ -f "$CONFIG_FILE" ]; then
+            if grep -q "disable[[:space:]]*=[[:space:]]*no" "$CONFIG_FILE"; then
+                echo "Telnet service is enabled in $CONFIG_FILE. Please check if root login is allowed."
+            else
+                echo "Telnet service is disabled in $CONFIG_FILE."
+            fi
+        else
+            echo "xinetd Telnet configuration file not found."
+        fi
+    else
+        echo "Telnet daemon or related super-daemon is not running on $OS."
+    fi
+}
+
+# Check SSH function
+check_ssh() {
+    # Check SSH Daemon
+    if ps -ef | grep -v grep | grep -q "sshd"; then
+        echo "SSH daemon is running on $OS."
+
+        # Location of OS's Config file
+        case "$OS" in
+            Linux|AIX|HP-UX)
+                CONFIG_FILE="/etc/ssh/sshd_config"
+                ;;
+            SunOS)
+                CONFIG_FILE="/etc/ssh/sshd_config"
+                ;;
+            *)
+                echo "Unknown OS. Could not determine SSH config file location."
+                return
+                ;;
+        esac
+
+        # Check 'Allow Remote Login' from config
+        if [ -f "$CONFIG_FILE" ]; then
+            echo "Checking SSH configuration in $CONFIG_FILE..."
+            
+            # Check PermitRootLogin from Linux, AIX, HP-UX, Solaris
+            PERMIT_ROOT_LOGIN=$(grep -i "^PermitRootLogin" "$CONFIG_FILE" | awk '{print $2}')
+            
+            if [[ "$PERMIT_ROOT_LOGIN" == "yes" ]]; then
+                echo "Root login via SSH is permitted."
+            elif [[ "$PERMIT_ROOT_LOGIN" == "no" ]]; then
+                echo "Root login via SSH is not permitted."
+            else
+                echo "PermitRootLogin is not explicitly set in $CONFIG_FILE."
+            fi
+        else
+            echo "SSH configuration file not found at $CONFIG_FILE."
+        fi
+    else
+        echo "SSH daemon is not running on $OS."
+    fi
+}
+
+# start Check Telnet,SSH function
+check_telnet
+check_ssh
