@@ -1,8 +1,8 @@
 #!/bin/bash
 
-OS=$(uname -s)
+source ../config/settings.conf
 
-echo "OS is $OS"
+vulnerabilities=0
 
 check_telnet() {
     # Check Telnet Daemon
@@ -27,7 +27,8 @@ check_telnet() {
         if [ -f "$CONFIG_FILE" ]; then
             echo "Checking Telnet configuration in $CONFIG_FILE..."
             if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
-                echo "Telnet service is enabled. Please check if root login is allowed."
+                echo "Telnet service is enabled. WARNING: Telnet allows unencrypted remote login."
+                vulnerabilities=1
             else
                 echo "Telnet service is disabled in $CONFIG_FILE."
             fi
@@ -45,7 +46,8 @@ check_telnet() {
         fi
 
         if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
-            echo "Telnet service is enabled in $CONFIG_FILE. Please check if root login is allowed."
+            echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login."
+            vulnerabilities=1
         else
             echo "Telnet service is disabled in $CONFIG_FILE."
         fi
@@ -57,7 +59,8 @@ check_telnet() {
 
         if [ -f "$CONFIG_FILE" ]; then
             if grep -q "disable[[:space:]]*=[[:space:]]*no" "$CONFIG_FILE"; then
-                echo "Telnet service is enabled in $CONFIG_FILE. Please check if root login is allowed."
+                echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login."
+                vulnerabilities=1
             else
                 echo "Telnet service is disabled in $CONFIG_FILE."
             fi
@@ -78,10 +81,10 @@ check_ssh() {
         # Location of OS's Config file
         case "$OS" in
             Linux|AIX|HP-UX)
-                CONFIG_FILE="/etc/ssh/sshd_config"
+                CONFIG_FILE=$SSH_CONFIG_FILE
                 ;;
             SunOS)
-                CONFIG_FILE="/etc/ssh/sshd_config"
+                CONFIG_FILE=$SSH_CONFIG_FILE
                 ;;
             *)
                 echo "Unknown OS. Could not determine SSH config file location."
@@ -111,6 +114,6 @@ check_ssh() {
     fi
 }
 
-# start Check Telnet,SSH function
+
 check_telnet
 check_ssh
