@@ -23,17 +23,16 @@ check_telnet() {
                 ;;
         esac
 
-        # Check 'Allow Remote Login' from config.
         if [ -f "$CONFIG_FILE" ]; then
             echo "Checking Telnet configuration in $CONFIG_FILE..."
             if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
-                echo "Telnet service is enabled. WARNING: Telnet allows unencrypted remote login."
+                echo "Telnet service is enabled. WARNING: Telnet allows unencrypted remote login." >> "$LOG_FILE"
                 vulnerabilities=1
             else
-                echo "Telnet service is disabled in $CONFIG_FILE."
+                echo "Telnet service is disabled in $CONFIG_FILE." >> "$LOG_FILE"
             fi
         else
-            echo "Telnet configuration file not found at $CONFIG_FILE."
+            echo "Telnet configuration file not found at $CONFIG_FILE." >> "$LOG_FILE"
         fi
 
     # if use inetd
@@ -46,10 +45,10 @@ check_telnet() {
         fi
 
         if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
-            echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login."
+            echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login." >> "$LOG_FILE"
             vulnerabilities=1
         else
-            echo "Telnet service is disabled in $CONFIG_FILE."
+            echo "Telnet service is disabled in $CONFIG_FILE." >> "$LOG_FILE"
         fi
 
     # if use xinetd
@@ -59,16 +58,16 @@ check_telnet() {
 
         if [ -f "$CONFIG_FILE" ]; then
             if grep -q "disable[[:space:]]*=[[:space:]]*no" "$CONFIG_FILE"; then
-                echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login."
+                echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login." >> "$LOG_FILE"
                 vulnerabilities=1
             else
-                echo "Telnet service is disabled in $CONFIG_FILE."
+                echo "Telnet service is disabled in $CONFIG_FILE." >> "$LOG_FILE"
             fi
         else
-            echo "xinetd Telnet configuration file not found."
+            echo "xinetd Telnet configuration file not found." >> "$LOG_FILE"
         fi
     else
-        echo "Telnet daemon or related super-daemon is not running on $OS."
+        echo "Telnet daemon or related super-daemon is not running on $OS." >> "$LOG_FILE"
     fi
 }
 
@@ -97,23 +96,28 @@ check_ssh() {
             echo "Checking SSH configuration in $CONFIG_FILE..."
             
             # Check PermitRootLogin from Linux, AIX, HP-UX, Solaris
-            PERMIT_ROOT_LOGIN=$(grep -i "^PermitRootLogin" "$CONFIG_FILE" | awk '{print $2}')
+            PERMIT_ROOT_LOGIN=$(grep -i "PermitRootLogin" "$CONFIG_FILE" | awk '{print $2}')
             
             if [[ "$PERMIT_ROOT_LOGIN" == "yes" ]]; then
-                echo "Root login via SSH is permitted."
+                message=$(echo "Root login via SSH is permitted.") >> "$LOG_FILE"
             elif [[ "$PERMIT_ROOT_LOGIN" == "no" ]]; then
-                echo "Root login via SSH is not permitted."
+                echo "Root login via SSH is not permitted." >> "$LOG_FILE"
             else
-                echo "PermitRootLogin is not explicitly set in $CONFIG_FILE."
+                echo "PermitRootLogin is not explicitly set in $CONFIG_FILE." >> "$LOG_FILE"
             fi
         else
-            echo "SSH configuration file not found at $CONFIG_FILE."
+            echo "SSH configuration file not found at $CONFIG_FILE." >> "$LOG_FILE"
         fi
     else
-        echo "SSH daemon is not running on $OS."
+        echo "SSH daemon is not running on $OS." >> "$LOG_FILE"
     fi
 }
 
-
 check_telnet
 check_ssh
+
+if [ "$vulnerabilities" -eq 1 ]; then
+    echo "[U-01] Remote Root Login allowed  - Vulnerable" >> "$LOG_FILE"
+else
+    echo "[U-03] Remote Root Login not allowed - Safe" >> "$LOG_FILE"
+fi

@@ -37,7 +37,7 @@ check_account_lockout() {
                 fi
                 ;;
             "AIX")
-                LOGIN_RETRIES=$(grep "loginretries" "$CONFIG_FILE" | awk '{print $3}')
+                LOGIN_RETRIES=$(grep "loginretries" "$CONFIG_FILE" | awk -F" " '{print $3}')
                 if [[ "$LOGIN_RETRIES" -gt 10 || -z "$LOGIN_RETRIES" ]]; then
                     echo "- Cause: Account lockout threshold exceeds 10 attempts or is not set." >> "$LOG_FILE"
                     vulnerabilities=1
