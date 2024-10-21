@@ -1,0 +1,23 @@
+#!/bin/bash
+
+source ../config/settings.conf
+
+check_root_path() {
+    local vulnerabilities=0
+
+    
+    ROOT_PATH=$(echo $PATH)
+    
+    if [[ "$ROOT_PATH" == .:* || "$ROOT_PATH" == *:.:* ]]; then
+        echo "- Cause: PATH variable contains '.' at the start or middle of the path." >> "$LOG_FILE"
+        vulnerabilities=1
+    fi
+
+    if [ "$vulnerabilities" -eq 1 ]; then
+        echo "[U-05] Root PATH directory settings - Vulnerable" >> "$LOG_FILE"
+    else
+        echo "[U-05] Root PATH directory settings - Safe" >> "$LOG_FILE"
+    fi
+}
+
+check_root_path

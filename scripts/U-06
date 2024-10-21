@@ -1,0 +1,22 @@
+#! /bin/sh
+
+source ../config/settings.conf
+
+check_file_ownership() {
+    local vulnerabilities
+
+    echo "Checking for files without owner..."
+
+    case "$OS" in
+        "SunOS" | "AIX")
+            echo "find / -nouser -o nogroup -xdev -ls 2> /dev/null"
+        ;;
+        "HP-UX" )
+            echo "find / \(-nouser -o -nogroup \) -xdev -exec ls -al () \; 2> /dev/null"
+        ;;
+        "Debian" | "Ubuntu" | "CentOS" | "Fedora")
+            nouser=$(echo "find / -nouser -print")
+            nogroup=$(echo "find / -nogroup -print")
+            if [ -f $nouser ]
+
+}
