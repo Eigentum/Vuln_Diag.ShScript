@@ -15,8 +15,26 @@ check_file_ownership() {
             echo "find / \(-nouser -o -nogroup \) -xdev -exec ls -al () \; 2> /dev/null"
         ;;
         "Debian" | "Ubuntu" | "CentOS" | "Fedora")
-            nouser=$(echo "find / -nouser -print")
-            nogroup=$(echo "find / -nogroup -print")
-            if [ -f $nouser ]
+            nouser=$(echo "find / -nouser -print 2>/dev/null")
+            nogroup=$(echo "find / -nogroup -print 2>/dev/null")
+            if [ -f "$nouser" ]; then
+            echo "Unowned_File(User) has been Detected" >> "$LOG_FILE"
+            vulnerabilities = 1
+            fi
+            if [ -f "$nogroup" ]; then
+            echo "Unowned_File(Group) has been Detected" >> "$LOG_FILE"
+            vulnerabilities = 1
+            fi
+        ;;
+    esac
+
+        if [ "$vulnerabilities" -eq 1 ]; then
+            echo "[U-06] File and Directory ownership settings - Vulnerable" >> $LOG_FILE
+        else
+            echo "[U-06]  Ffil and directory ownership settings - Safe" >> $LOG_FILE
+        fi
+
 
 }
+
+check_file_ownership
