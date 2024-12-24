@@ -1,123 +1,24 @@
 #!/bin/bash
 
-source ../config/settings.conf
 
-vulnerabilities=0
+# 1. OS 확인
+# uname + case 사용
 
-check_telnet() {
-    # Check Telnet Daemon
-    if ps -ef | grep -v grep | grep -q "telnetd"; then
-        echo "Telnet daemon is running on $OS."
+case "$(uname -s)" in
+    Linux*) dist = $(lsb_release -a | grep Distributor | awk -F" " '{print $3}')
+    if [$dist == "Ubuntu"|"Debian"]; then
+    
+    ;;
+    AIX*)
 
-        # Location of OS's configuration files
-        case "$OS" in
-            Linux|AIX|HP-UX)
-                CONFIG_FILE="/etc/inetd.conf"
-                ;;
-            SunOS)
-                CONFIG_FILE="/etc/inet/inetd.conf"
-                ;;
-            *)
-                echo "Unknown OS. Could not determine telnet config file location."
-                return
-                ;;
-        esac
+# 2. SSH 설정 파일 확인
+# if [ -f ] 구문 사용
 
-        if [ -f "$CONFIG_FILE" ]; then
-            echo "Checking Telnet configuration in $CONFIG_FILE..."
-            if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
-                echo "Telnet service is enabled. WARNING: Telnet allows unencrypted remote login." >> "$LOG_FILE"
-                vulnerabilities=1
-            else
-                echo "Telnet service is disabled in $CONFIG_FILE." >> "$LOG_FILE"
-            fi
-        else
-            echo "Telnet configuration file not found at $CONFIG_FILE." >> "$LOG_FILE"
-        fi
+# 3. 설정 값 검색
+# grep, awk로 값 추출
 
-    # if use inetd
-    elif ps -ef | grep -v grep | grep -q "inetd"; then
-        echo "inetd is managing Telnet on $OS."
-        if [ "$OS" == "SunOS" ]; then
-            CONFIG_FILE="/etc/inet/inetd.conf"
-        else
-            CONFIG_FILE="/etc/inetd.conf"
-        fi
+# 4. 값 비교 및 결과 출력
+# if + echo 사용
 
-        if grep -q "telnet" "$CONFIG_FILE" && ! grep -q "#" <<< "$(grep telnet $CONFIG_FILE)"; then
-            echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login." >> "$LOG_FILE"
-            vulnerabilities=1
-        else
-            echo "Telnet service is disabled in $CONFIG_FILE." >> "$LOG_FILE"
-        fi
-
-    # if use xinetd
-    elif ps -ef | grep -v grep | grep -q "xinetd"; then
-        echo "xinetd is managing Telnet on $OS."
-        CONFIG_FILE="/etc/xinetd.d/telnet"
-
-        if [ -f "$CONFIG_FILE" ]; then
-            if grep -q "disable[[:space:]]*=[[:space:]]*no" "$CONFIG_FILE"; then
-                echo "Telnet service is enabled in $CONFIG_FILE. WARNING: Telnet allows unencrypted remote login." >> "$LOG_FILE"
-                vulnerabilities=1
-            else
-                echo "Telnet service is disabled in $CONFIG_FILE." >> "$LOG_FILE"
-            fi
-        else
-            echo "xinetd Telnet configuration file not found." >> "$LOG_FILE"
-        fi
-    else
-        echo "Telnet daemon or related super-daemon is not running on $OS." >> "$LOG_FILE"
-    fi
-}
-
-# Check SSH function
-check_ssh() {
-    # Check SSH Daemon
-    if ps -ef | grep -v grep | grep -q "sshd"; then
-        echo "SSH daemon is running on $OS."
-
-        # Location of OS's Config file
-        case "$OS" in
-            Linux|AIX|HP-UX)
-                CONFIG_FILE=$SSH_CONFIG_FILE
-                ;;
-            SunOS)
-                CONFIG_FILE=$SSH_CONFIG_FILE
-                ;;
-            *)
-                echo "Unknown OS. Could not determine SSH config file location."
-                return
-                ;;
-        esac
-
-        # Check 'Allow Remote Login' from config
-        if [ -f "$CONFIG_FILE" ]; then
-            echo "Checking SSH configuration in $CONFIG_FILE..."
-            
-            # Check PermitRootLogin from Linux, AIX, HP-UX, Solaris
-            PERMIT_ROOT_LOGIN=$(grep -i "PermitRootLogin" "$CONFIG_FILE" | awk '{print $2}')
-            
-            if [[ "$PERMIT_ROOT_LOGIN" == "yes" ]]; then
-                message=$(echo "Root login via SSH is permitted.") >> "$LOG_FILE"
-            elif [[ "$PERMIT_ROOT_LOGIN" == "no" ]]; then
-                echo "Root login via SSH is not permitted." >> "$LOG_FILE"
-            else
-                echo "PermitRootLogin is not explicitly set in $CONFIG_FILE." >> "$LOG_FILE"
-            fi
-        else
-            echo "SSH configuration file not found at $CONFIG_FILE." >> "$LOG_FILE"
-        fi
-    else
-        echo "SSH daemon is not running on $OS." >> "$LOG_FILE"
-    fi
-}
-
-check_telnet
-check_ssh
-
-if [ "$vulnerabilities" -eq 1 ]; then
-    echo "[U-01] Remote Root Login allowed  - Vulnerable" >> "$LOG_FILE"
-else
-    echo "[U-03] Remote Root Login not allowed - Safe" >> "$LOG_FILE"
-fi
+# 5. 스크립트 종료
+# exit 0
