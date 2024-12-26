@@ -1,7 +1,7 @@
 #!/bin/bash
 telnet_vuln=0
 ssh_vuln=0
-OS=$(uname -s)
+source ../config/settings.config
 
 case "$OS" in
     Linux*)
