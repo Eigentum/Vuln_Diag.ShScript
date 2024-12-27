@@ -3,6 +3,8 @@ telnet_vuln=0
 ssh_vuln=0
 source ../config/settings.config
 
+echo "[INFO] Start Vulnerabilities by U-01..."
+
 case "$OS" in
     Linux*)
     if [ -f /etc/pam.d/login ]; then
@@ -119,7 +121,7 @@ echo "Telnet Vulnerability Flag: $telnet_vuln"
 echo "SSH Vulnerability Flag: $ssh_vuln"
 
 if [ "$telnet_vuln" -eq 0 ] && [ "$ssh_vuln" -eq 0 ]; then
-    echo "[RESULT] U-01 Result: SAFE."
+    echo "[U-01] Result: SAFE."
 else
-    echo "[RESULT] U-01 Result: Found Vulnerability."
+    echo "[U-01] Result: Found Vulnerability."
 fi
