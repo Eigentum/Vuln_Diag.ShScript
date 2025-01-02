@@ -8,12 +8,12 @@ case $OS in
     SunOS)
         CONFIG_FILE="/etc/default/login"
         POLICY_FILE="/etc/security/policy.conf"
-        ;;
+    ;;
     CentOS|Fedora|Red Hat)
         if [[ -f /etc/pam.d/system-auth ]]; then
             CONFIG_FILE="/etc/pam.d/system-auth"
         fi
-        ;;
+    ;;
     Debian|Ubuntu)
         if [[ -f /etc/pam.d/common-auth ]]; then
             CONFIG_FILE="/etc/pam.d/common-auth"
@@ -25,18 +25,19 @@ case $OS in
             ACCOUNT_FILE="/etc/pam.d/common-account"
         else
             echo "[ERROR] There is no 'common-account' file..."
+            exit 1
         fi
-        ;;
+    ;;
     AIX)
         CONFIG_FILE="/etc/security/user"
-        ;;
+    ;;
     HP-UX)
         CONFIG_FILE="/tcb/files/auth/system/default"
-        ;;
+    ;;
     *)
         echo "[ERROR] Unknown OS... : $OS"
         exit 1
-        ;;
+    ;;
 esac
 
 if [ -f "$CONSOLE_FILE" ]; then
@@ -62,6 +63,7 @@ if [ -f "$CONSOLE_FILE" ]; then
                 echo "[CAUTION] Account Lockout threshold exceeds 10 attempts or is not set."
                 vulnerabilities=1
             fi
+            if [[  ]]
             ;;
         Debian|Ubuntu)
         Auth_SETTING=$(grep "pam_tally)
