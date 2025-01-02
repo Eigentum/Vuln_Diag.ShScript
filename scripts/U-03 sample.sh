@@ -4,9 +4,10 @@ source ../config/settings.conf
 
 check_account_lockout() {
     local vulnerabilities=0
+    OS=$(uname -s)
     
     case "$OS" in
-        "Ubuntu" | "Debian" | "CentOS" | "Fedora")
+        "Linux")
             CONFIG_FILE="/etc/pam.d/system-auth"
             ;;
         "AIX")
@@ -29,36 +30,36 @@ check_account_lockout() {
         echo "Checking account lockout settings in: $CONFIG_FILE"
 
         case "$OS" in
-            "Ubuntu" | "Debian" | "CentOS" | "Fedora")
-                DENY_SETTING=$(grep -E "deny=[0-9]+" "$CONFIG_FILE" | awk -F= '{print $2}')
-                if [[ "$DENY_SETTING" -gt 10 || -z "$DENY_SETTING" ]]; then
+            "Linux")
+                DENY_SETTING=$(grep -E "deny=[0-9]+" $CONFIG_FILE | awk -F= '{print $2}')
+                if [[ "$DENY_SETTING" -gt 10 || -z $DENY_SETTING ]]; then
                     echo "- Cause: Account lockout threshold exceeds 10 attempts or is not set." >> "$LOG_FILE"
                     vulnerabilities=1
                 fi
                 ;;
             "AIX")
-                LOGIN_RETRIES=$(grep "loginretries" "$CONFIG_FILE" | awk -F" " '{print $3}')
-                if [[ "$LOGIN_RETRIES" -gt 10 || -z "$LOGIN_RETRIES" ]]; then
+                LOGIN_RETRIES=$(grep "loginretries" $CONFIG_FILE | awk -F" " '{print $3}')
+                if [[ $LOGIN_RETRIES -gt 10 || -z $LOGIN_RETRIES ]]; then
                     echo "- Cause: Account lockout threshold exceeds 10 attempts or is not set." >> "$LOG_FILE"
                     vulnerabilities=1
                 fi
                 ;;
             "HP-UX")
-                MAX_TRIES=$(grep "u_maxtries" "$CONFIG_FILE" | awk -F# '{print $2}')
-                if [[ "$MAX_TRIES" -gt 10 || -z "$MAX_TRIES" ]]; then
+                MAX_TRIES=$(grep "u_maxtries" $CONFIG_FILE | awk -F# '{print $2}')
+                if [[ $MAX_TRIES -gt 10 || -z $MAX_TRIES ]]; then
                     echo "- Cause: Account lockout threshold exceeds 10 attempts or is not set." >> "$LOG_FILE"
                     vulnerabilities=1
                 fi
                 ;;
             "SunOS")
-                RETRIES=$(grep "RETRIES" "$CONFIG_FILE" | awk -F= '{print $2}')
-                if [[ "$RETRIES" -gt 10 || -z "$RETRIES" ]]; then
+                RETRIES=$(grep "RETRIES" $CONFIG_FILE | awk -F= '{print $2}')
+                if [[ $RETRIES -gt 10 || -z $RETRIES ]]; then
                     echo "- Cause: Account lockout threshold exceeds 10 attempts or is not set." >> "$LOG_FILE"
                     vulnerabilities=1
                 fi
-                if [ -f "$POLICY_FILE" ]; then
+                if [ -f $POLICY_FILE ]; then
                     LOCK_AFTER_RETRIES=$(grep "LOCK_AFTER_RETRIES" "$POLICY_FILE" | awk -F= '{print $2}')
-                    if [[ "$LOCK_AFTER_RETRIES" != "YES" ]]; then
+                    if [[ $LOCK_AFTER_RETRIES != "YES" ]]; then
                         echo "- Cause: Account lockout policy is not enabled." >> "$LOG_FILE"
                         vulnerabilities=1
                     fi
@@ -66,7 +67,7 @@ check_account_lockout() {
                 ;;
         esac
 
-        if [ "$vulnerabilities" -eq 1 ]; then
+        if [ $vulnerabilities -eq 1 ]; then
             echo "[U-03] Account lockout settings - Vulnerable" >> "$LOG_FILE"
         else
             echo "[U-03] Account lockout settings - Safe" >> "$LOG_FILE"

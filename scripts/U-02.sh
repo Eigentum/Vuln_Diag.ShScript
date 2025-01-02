@@ -1,22 +1,24 @@
 #! /bin/bash
 
-source ../config/settings.conf
 echo "[INFO] Start Vulnerabilities by U-02..."
+OS=$(uname -s)
+dist=$(grep "^NAME" /etc/os-release | awk -F= '{print $2}' | tr -d '"')
 check_pw_complexity() {
     local vulnerabilities=0
 
     case "$OS" in
-        "Ubuntu" | "Debian")
-            CONFIG_FILE="etc/security/pwquality.conf"
-            ;;
-        "CentOS" | "Fedora")
-            if [ -f /etc/pam.d/system-auth ]; then
-                CONFIG_FILE="/etc/pam.d/system-auth"
-            elif [ -f /etc/security/pwquality.conf ]; then
-                CONFIG_FILE="etc/security/pwquality.conf"
-            else
-                echo "There is no Config File."
-                exit 1
+        "Linux")
+            if [[ $dist == "Ubuntu" || $dist == "Debian" ]]; then
+                CONFIG_FILE="/etc/security/pwquality.conf"
+            elif [[ $dist == "CentOS" || $dist == "Fedora" ]]; then
+                if [ -f /etc/pam.d/system-auth ]; then
+                    CONFIG_FILE="/etc/pam.d/system-auth"
+                elif [ -f /etc/security/pwquality.conf ]; then
+                    CONFIG_FILE="/etc/security/pwquality.conf"
+                else
+                    echo "There is no Config File."
+                    exit 1
+                fi
             fi
             ;;
         "AIX")
@@ -75,69 +77,92 @@ check_pw_complexity() {
         esac
 
     if [[ "$MINLENGTH" -lt 8 ]]; then
-        echo "- Cause: Password minimum length is less than 8 characters." >> "$LOG_FILE"
+        echo "- Cause: Password minimum length is less than 8 characters."
         vulnerabilities=1
+    else
+        types_includes=0
+        if [[ "$MINALPHA" -ge 1 ]]; then
+            ((types_includes++))
+        fi
+        if [[ "$MINLOWER" -ge 1 || "$MINUPPER" -ge 1 ]]; then
+            ((types_includes++))
+        fi
+        if [[ "$MINDIGIT" -ge 1 ]]; then
+            ((types_includes++))
+        fi
+        if [[ "$MINSPECIAL" -ge 1 ]]; then
+            ((types_includes++))
+        fi
+
+        if [[ "$types_includes" -ge 2 && "$MINLENGTH" -ge 10 ]]; then
+            echo "- Pasword meets the criteria: 2 or more types included and length >= 10."
+        elif [[ "$types_includes" -ge 3 && "$MINLENGTH" -ge 8 ]]; then
+            echo "- Password meets the criteria: 3 or more types included and length >= 8."
+        else
+            echo "- [CAUTION] : Password does not meet complexity requirements."
+            vulnerabilities=1
+        fi
     fi
 
     case "$OS" in
         "AIX")
             if [[ "$MINALPHA" -lt 1 ]]; then
-                echo "- Cause: No alphabetic characters included." >> "$LOG_FILE"
+                echo "- Cause: No alphabetic characters included."
                 vulnerabilities=1
             fi
             if [[ "$MINOTHER" -lt 1 ]]; then
-                echo "- Cause: No numeric or special characters included." >> "$LOG_FILE"
+                echo "- Cause: No numeric or special characters included."
                 vulnerabilities=1
             fi
             ;;
         "HP-UX")
             if [[ "$MINLOWER" -lt 1 ]]; then
-                echo "- Cause: No lowercase characters included." >> "$LOG_FILE"
+                echo "- Cause: No lowercase characters included."
                 vulnerabilities=1
                 fi
             if [[ "$MINDIGIT" -lt 1 ]]; then
-                echo "- Cause: No digits included." >> "$LOG_FILE"
+                echo "- Cause: No digits included."
                 vulnerabilities=1
             fi
             if [[ "$MINSPECIAL" -lt 1 ]]; then
-                echo "- Cause: No special characters included." >> "$LOG_FILE"
+                echo "- Cause: No special characters included."
                 vulnerabilities=1
             fi
             ;;
         "SunOS")
             if [[ "$MINALPHA" -lt 1 ]]; then
-                echo "- Cause: No alphabetic characters included." >> "$LOG_FILE"
+                echo "- Cause: No alphabetic characters included."
                 vulnerabilities=1
             fi
             if [[ "$MINNONALPHA" -lt 1 ]]; then
-                echo "- Cause: No numeric or special characters included." >> "$LOG_FILE"
+                echo "- Cause: No numeric or special characters included."
                 vulnerabilities=1
             fi
             ;;
         "Ubuntu" | "CentOS")
             if [[ "$UCREDIT" -eq 0 ]]; then
-                echo "- Cause: No uppercase characters included." >> "$LOG_FILE"
+                echo "- Cause: No uppercase characters included."
                 vulnerabilities=1
             fi
             if [[ "$LCREDIT" -eq 0 ]]; then
-                echo "- Cause: No lowercase characters included." >> "$LOG_FILE"
+                echo "- Cause: No lowercase characters included."
                 vulnerabilities=1
             fi
             if [[ "$DCREDIT" -eq 0 ]]; then
-                echo "- Cause: No digits included." >> "$LOG_FILE"
+                echo "- Cause: No digits included."
                 vulnerabilities=1
             fi
             if [[ "$OCREDIT" -eq 0 ]]; then
-                echo "- Cause: No special characters included." >> "$LOG_FILE"
+                echo "- Cause: No special characters included."
                 vulnerabilities=1
             fi
             ;;
         esac
         
         if [ "$vulnerabilities" -eq 1 ]; then
-            echo "[U-02] Password complexity settings - Vulnerable" >> "$LOG_FILE"
+            echo "[U-02] Password complexity settings - Vulnerable" 
         else
-            echo "[U-02] Password complexity settings - Safe" >> "$LOG_FILE"
+            echo "[U-02] Password complexity settings - Safe"
         fi
     else
         echo "Password configuration file not found: $CONFIG_FILE"
@@ -145,4 +170,4 @@ check_pw_complexity() {
     fi
 }
 
-check_password_complexity
+check_pw_complexity
