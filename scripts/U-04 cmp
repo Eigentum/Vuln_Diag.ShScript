@@ -1,0 +1,58 @@
+#!/bin/bash
+
+source ../config/settings.conf
+
+check_password_file_protection() {
+    local vulnerabilities=0
+
+    case "$OS" in
+        "Ubuntu" | "Debian" | "CentOS" | "Fedora" | "SunOS" | "AIX")
+            PASSWD_FILE="/etc/passwd"
+            SHADOW_FILE="/etc/shadow"
+            ;;
+        "HP-UX")
+            PASSWD_FILE="/etc/security/passwd"
+            SHADOW_FILE="/etc/security/passwd"
+            ;;
+        *)
+            echo "Unsupported operating system: $OS"
+            exit 1
+            ;;
+    esac
+
+    
+    if [ -f "$PASSWD_FILE" ]; then
+        echo "Checking password protection in: $PASSWD_FILE"
+        
+        if grep -q "x" "$PASSWD_FILE"; then
+            echo "[PASSWD] Passwords are encrypted and stored in $SHADOW_FILE." >> "$LOG_FILE"
+        else
+            echo "[PASSWD] WARNING: Plain text passwords found in $PASSWD_FILE!" >> "$LOG_FILE"
+            vulnerabilities=1
+        fi
+    else
+        echo "Password file not found: $PASSWD_FILE"
+        exit 1
+    fi
+
+    if [ -f "$SHADOW_FILE" ]; then
+        SHADOW_PERMISSIONS=$(stat -c "%a" "$SHADOW_FILE")
+        if [[ "$SHADOW_PERMISSIONS" -eq 400 || "$SHADOW_PERMISSIONS" -eq 600 ]]; then
+            echo "[SHADOW] Shadow file permissions are properly set."  >> "$LOG_FILE"
+        else
+            echo "[SHADOW] WARNING: Shadow file permissions are insecure!" >> "$LOG_FILE"
+            vulnerabilities=1
+        fi
+    else
+        echo "Shadow file not found: $SHADOW_FILE"
+        exit 1
+    fi
+
+    if [ "$vulnerabilities" -eq 1 ]; then
+        echo "[U-04] Password file protection - Vulnerable" >> "$LOG_FILE"
+    else
+        echo "[U-04] Password file protection - Safe" >> "$LOG_FILE"
+    fi
+}
+
+check_password_file_protection
