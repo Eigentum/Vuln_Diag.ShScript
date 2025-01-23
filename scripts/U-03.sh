@@ -39,12 +39,12 @@ esac
 
 case $OS in
     SunOS)
-        RETRIES=$(grep "^RETRIES" $CONFIG_FILE | awk -F= '{print $2}')
+        RETRIES=$(grep "^RETRIES" "$CONFIG_FILE" | awk -F= '{print $2}')
         if [[ $RETRIES -gt 10 || -z $RETRIES ]]; then
             echo "[CAUTION] Account Lockout threshold exceeds 10 attempts or is not set."
             vulnerabilities=1
         fi
-        if [ -f $POLICY_FILE ]; then
+        if [ -f "$POLICY_FILE" ]; then
             LOCK_AFTER_RETRIES=$(grep "^LOCK_AFTER_RETRIES" /etc/security/policy.conf | awk -F= '{print $2}')
             if [[ $LOCK_AFTER_RETRIES -ne "YES" ]]; then
                 echo "[CAUTION] Account lockout policy is not enabled."
@@ -52,23 +52,26 @@ case $OS in
         fi
         ;;
     LINUX)
-        Deny_SETTING=$(grep -E "^deny=[0-9]+" $CONFIG_FILE | awk -F= '{print $2}')
+        DENY_SETTING=$(grep -E "^deny=[0-9]+" "$CONFIG_FILE" | awk -F= '{print $2}')
         if [[ $DENY_SETTING -gt 10 || -z $DENY_SETTING ]]; then
             echo "[CAUTION] Account Lockout threshold exceeds 10 attempts or is not set."
             vulnerabilities=1
         fi
         ;;
     AIX)
-        RETRIES=$(grep -E "loginretries = [0-9]+" $CONFIG_FILE | awk -F= '{print $2}')
+        RETRIES=$(grep -E "loginretries = [0-9]+" "$CONFIG_FILE" | awk -F= '{print $2}')
         if [[ $RETRIES -gt 10 || -z $RETRIES ]]; then
             echo "[CAUTION] Account Lockout threshold exceeds 10 attempts or is not set."
             vulnerabilities=1
         fi
         ;;
     HP-UX)
+        RETRIES=$(grep -E "u_maxtries#[0-9]+" "$CONFIG_FILE" | awk -F"#" '{print $2}')
         if [[ $RETRIES -gt 10 || -z $RETRIES ]]; then
             echo "[CAUTION] Account Lockout threshold exceeds 10 attempts or is not set."
             vulnerabilities=1
+        fi
+        ;;
 esac
 
 

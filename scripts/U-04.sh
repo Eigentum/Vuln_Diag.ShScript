@@ -1,12 +1,11 @@
 #!/bin/bash
 
-source ../config/settings.conf
-
+OS=$(uname -s)
 check_password_file_protection() {
     local vulnerabilities=0
 
     case "$OS" in
-        "Ubuntu" | "Debian" | "CentOS" | "Fedora" | "SunOS" | "AIX")
+        "Linux" | "SunOS" | "AIX")
             PASSWD_FILE="/etc/passwd"
             SHADOW_FILE="/etc/shadow"
             ;;
@@ -24,10 +23,10 @@ check_password_file_protection() {
     if [ -f "$PASSWD_FILE" ]; then
         echo "Checking password protection in: $PASSWD_FILE"
         
-        if grep -q "x" "$PASSWD_FILE"; then
-            echo "[PASSWD] Passwords are encrypted and stored in $SHADOW_FILE." >> "$LOG_FILE"
+        if grep "^root" "$PASSWD_FILE" | awk -F":" '$2 == "x" {exit 0} END {exit 1}'; then
+            echo "[PASSWD] Passwords are encrypted and stored in $SHADOW_FILE."
         else
-            echo "[PASSWD] WARNING: Plain text passwords found in $PASSWD_FILE!" >> "$LOG_FILE"
+            echo "[PASSWD] WARNING: Plain text passwords found in $PASSWD_FILE!"
             vulnerabilities=1
         fi
     else
@@ -36,11 +35,11 @@ check_password_file_protection() {
     fi
 
     if [ -f "$SHADOW_FILE" ]; then
-        SHADOW_PERMISSIONS=$(stat -c "%a" "$SHADOW_FILE")
+        SHADOW_PERMISSIONS=$(awk -F: '$2 ~ /^\$/ {print $1 "has and encrypted password"} $2 == "" {print $1 "has no password"} $2 ~/^[!*]/ {print $1 "is locked"}' "$SHADOW_FILE") // 여기 고쳐야함!!!
         if [[ "$SHADOW_PERMISSIONS" -eq 400 || "$SHADOW_PERMISSIONS" -eq 600 ]]; then
-            echo "[SHADOW] Shadow file permissions are properly set."  >> "$LOG_FILE"
+            echo "[SHADOW] Shadow file permissions are properly set."
         else
-            echo "[SHADOW] WARNING: Shadow file permissions are insecure!" >> "$LOG_FILE"
+            echo "[SHADOW] WARNING: Shadow file permissions are insecure!"
             vulnerabilities=1
         fi
     else
@@ -49,9 +48,9 @@ check_password_file_protection() {
     fi
 
     if [ "$vulnerabilities" -eq 1 ]; then
-        echo "[U-04] Password file protection - Vulnerable" >> "$LOG_FILE"
+        echo "[U-04] Password file protection - Vulnerable"
     else
-        echo "[U-04] Password file protection - Safe" >> "$LOG_FILE"
+        echo "[U-04] Password file protection - Safe"
     fi
 }
 

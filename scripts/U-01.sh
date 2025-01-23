@@ -1,7 +1,7 @@
 #!/bin/bash
 telnet_vuln=0
 ssh_vuln=0
-source ../config/settings.config
+OS=$(uname -s)
 
 echo "[INFO] Start Vulnerabilities by U-01..."
 

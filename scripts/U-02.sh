@@ -36,7 +36,7 @@ check_pw_complexity() {
             ;;
     esac
 
-    if [ -f $CONFIG_FILE ]; then
+    if [ -f "$CONFIG_FILE" ]; then
         case $OS in
             "SunOS")
                 HISTORY=$(grep "^HISTORY" $CONFIG_FILE | awk -F= '{print $2}')
